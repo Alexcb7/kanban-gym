@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
 import {
   Controller,
   FormProvider,
@@ -14,14 +15,10 @@ import {
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 
-/* -------------------------------------------------------------------------- */
-/*                                   FORM                                     */
-/* -------------------------------------------------------------------------- */
-
 /**
- * ✅ FIX CLAVE
- * Este Form NO es un alias directo de FormProvider.
- * Así preservamos los genéricos y evitamos errores de Control/Resolver.
+ * ✅ FIX CLAVE (mantiene genéricos)
+ * No hacemos: const Form = FormProvider
+ * porque rompe tipos con resolver/control.
  */
 export function Form<TFieldValues extends FieldValues>({
   children,
@@ -31,10 +28,6 @@ export function Form<TFieldValues extends FieldValues>({
 }) {
   return <FormProvider {...methods}>{children}</FormProvider>
 }
-
-/* -------------------------------------------------------------------------- */
-/*                               FORM FIELD                                   */
-/* -------------------------------------------------------------------------- */
 
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
@@ -60,30 +53,6 @@ export function FormField<
   )
 }
 
-/* -------------------------------------------------------------------------- */
-/*                               USE FORM FIELD                               */
-/* -------------------------------------------------------------------------- */
-
-export function useFormField() {
-  const fieldContext = React.useContext(FormFieldContext)
-  const { getFieldState, formState } = useFormContext()
-
-  if (!fieldContext) {
-    throw new Error("useFormField debe usarse dentro de <FormField>")
-  }
-
-  const fieldState = getFieldState(fieldContext.name, formState)
-
-  return {
-    name: fieldContext.name,
-    ...fieldState,
-  }
-}
-
-/* -------------------------------------------------------------------------- */
-/*                               FORM ITEM                                    */
-/* -------------------------------------------------------------------------- */
-
 type FormItemContextValue = {
   id: string
 }
@@ -105,66 +74,93 @@ export function FormItem({
   )
 }
 
-/* -------------------------------------------------------------------------- */
-/*                               FORM LABEL                                   */
-/* -------------------------------------------------------------------------- */
+export function useFormField() {
+  const fieldContext = React.useContext(FormFieldContext)
+  const itemContext = React.useContext(FormItemContext)
+  const { getFieldState, formState } = useFormContext()
+
+  if (!fieldContext?.name) {
+    throw new Error("useFormField debe usarse dentro de <FormField>")
+  }
+
+  const fieldState = getFieldState(fieldContext.name, formState)
+
+  const { id } = itemContext
+
+  return {
+    id,
+    name: fieldContext.name,
+    formItemId: `${id}-form-item`,
+    formDescriptionId: `${id}-form-item-description`,
+    formMessageId: `${id}-form-item-message`,
+    ...fieldState,
+  }
+}
 
 export function FormLabel({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<typeof Label>) {
-  const { id } = React.useContext(FormItemContext)
-  const { error } = useFormField()
+  const { error, formItemId } = useFormField()
 
   return (
     <Label
-      htmlFor={id}
       className={cn(error && "text-destructive", className)}
+      htmlFor={formItemId}
       {...props}
     />
   )
 }
 
-/* -------------------------------------------------------------------------- */
-/*                              FORM CONTROL                                  */
-/* -------------------------------------------------------------------------- */
-
-export function FormControl({
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  const { id } = React.useContext(FormItemContext)
-  const { error } = useFormField()
+/**
+ * ✅ IMPORTANTE: FormControl DEBE ser Slot (shadcn original)
+ * para pasar id/aria-* al input real.
+ */
+export function FormControl({ ...props }: React.ComponentPropsWithoutRef<typeof Slot>) {
+  const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
 
   return (
-    <div
-      id={id}
+    <Slot
+      id={formItemId}
+      aria-describedby={!error ? formDescriptionId : `${formDescriptionId} ${formMessageId}`}
       aria-invalid={!!error}
-      aria-describedby={error ? `${id}-error` : undefined}
       {...props}
     />
   )
 }
 
-/* -------------------------------------------------------------------------- */
-/*                              FORM MESSAGE                                  */
-/* -------------------------------------------------------------------------- */
-
-export function FormMessage({
+export function FormDescription({
   className,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
-  const { id } = React.useContext(FormItemContext)
-  const { error } = useFormField()
-
-  if (!error) return null
+  const { formDescriptionId } = useFormField()
 
   return (
     <p
-      id={`${id}-error`}
-      className={cn("text-sm text-destructive", className)}
+      id={formDescriptionId}
+      className={cn("text-sm text-muted-foreground", className)}
+      {...props}
+    />
+  )
+}
+
+export function FormMessage({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>) {
+  const { error, formMessageId } = useFormField()
+  const body = error ? String(error.message) : children
+
+  if (!body) return null
+
+  return (
+    <p
+      id={formMessageId}
+      className={cn("text-sm font-medium text-destructive", className)}
       {...props}
     >
-      {String(error.message)}
+      {body}
     </p>
   )
 }

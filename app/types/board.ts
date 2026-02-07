@@ -1,21 +1,22 @@
-export type ColumnId = "todo" | "doing" | "done"
+import type { AuditEvent } from "./audit"
 
+export type ColumnId = "todo" | "doing" | "done"
 export type Priority = "low" | "medium" | "high"
 
 export type Task = {
-  id: string // uuid
-  title: string 
+  id: string
+  title: string
   description?: string
   priority: Priority
   tags: string[]
   estimationMin: number
-  createdAt: string // ISO
-  dueAt?: string // ISO optional
+  createdAt: string
+  dueAt?: string
   status: ColumnId
 }
 
-
 export type BoardState = {
   tasks: Record<string, Task>
-  columns: Record<ColumnId, string[]> 
+  columns: Record<ColumnId, string[]>
+  auditLog: AuditEvent[] 
 }

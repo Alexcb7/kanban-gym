@@ -2,10 +2,12 @@
 
 import * as React from "react"
 import { v4 as uuidv4 } from "uuid"
+
 import type { BoardState, ColumnId, Priority, Task } from "@/app/types"
 import { getDefaultBoardState, loadBoardState, saveBoardState } from "@/lib/storage"
+import { makeAuditEvent } from "@/lib/audit"
 
-type CreateTaskInput = {
+export type CreateTaskInput = {
   title: string
   description?: string
   priority: Priority
@@ -15,7 +17,7 @@ type CreateTaskInput = {
   status: ColumnId
 }
 
-type UpdateTaskInput = {
+export type UpdateTaskInput = {
   title: string
   description?: string
   priority: Priority
@@ -29,14 +31,14 @@ export function useBoard() {
   const [state, setState] = React.useState<BoardState>(getDefaultBoardState)
   const [hydrated, setHydrated] = React.useState(false)
 
-  // Cargar desde localStorage una vez
+  // 1) Cargar desde localStorage (solo cliente)
   React.useEffect(() => {
     const loaded = loadBoardState()
     setState(loaded)
     setHydrated(true)
   }, [])
 
-  // Guardar cuando haya cambios (solo tras hidratar)
+  // 2) Guardar cambios (solo tras hidratar)
   React.useEffect(() => {
     if (!hydrated) return
     saveBoardState(state)
@@ -59,14 +61,20 @@ export function useBoard() {
     }
 
     setState((prev) => {
-      const next: BoardState = {
+      const evt = makeAuditEvent({
+        action: "CREATE",
+        taskId: id,
+        after: task,
+      })
+
+      return {
         tasks: { ...prev.tasks, [id]: task },
         columns: {
           ...prev.columns,
           [task.status]: [id, ...prev.columns[task.status]],
         },
+        auditLog: [evt, ...prev.auditLog],
       }
-      return next
     })
   }, [])
 
@@ -86,7 +94,15 @@ export function useBoard() {
         status: input.status,
       }
 
-      // Si cambia de columna, hay que mover el id
+      const evt = makeAuditEvent({
+        action: "UPDATE",
+        taskId,
+        before: existing,
+        after: nextTask,
+      })
+
+      // Si cambia de columna mediante edición (no DnD), igual lo registramos como UPDATE (por ahora).
+      // En el paso de DnD, MOVE será una acción específica.
       if (existing.status !== nextTask.status) {
         const from = existing.status
         const to = nextTask.status
@@ -96,17 +112,15 @@ export function useBoard() {
 
         return {
           tasks: { ...prev.tasks, [taskId]: nextTask },
-          columns: {
-            ...prev.columns,
-            [from]: fromIds,
-            [to]: toIds,
-          },
+          columns: { ...prev.columns, [from]: fromIds, [to]: toIds },
+          auditLog: [evt, ...prev.auditLog],
         }
       }
 
       return {
         ...prev,
         tasks: { ...prev.tasks, [taskId]: nextTask },
+        auditLog: [evt, ...prev.auditLog],
       }
     })
   }, [])
@@ -116,7 +130,13 @@ export function useBoard() {
       const existing = prev.tasks[taskId]
       if (!existing) return prev
 
-      const { [taskId]: _, ...restTasks } = prev.tasks
+      const evt = makeAuditEvent({
+        action: "DELETE",
+        taskId,
+        before: existing,
+      })
+
+      const { [taskId]: _removed, ...restTasks } = prev.tasks
 
       return {
         tasks: restTasks,
@@ -124,6 +144,7 @@ export function useBoard() {
           ...prev.columns,
           [existing.status]: prev.columns[existing.status].filter((id) => id !== taskId),
         },
+        auditLog: [evt, ...prev.auditLog],
       }
     })
   }, [])

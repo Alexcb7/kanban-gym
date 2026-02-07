@@ -5,11 +5,8 @@ const STORAGE_KEY = "kanban_state_v1"
 export function getDefaultBoardState(): BoardState {
   return {
     tasks: {},
-    columns: {
-      todo: [],
-      doing: [],
-      done: [],
-    },
+    columns: { todo: [], doing: [], done: [] },
+    auditLog: [],
   }
 }
 
@@ -21,17 +18,15 @@ export function loadBoardState(): BoardState {
     if (!raw) return getDefaultBoardState()
 
     const parsed = JSON.parse(raw) as unknown
-    // Validación “light” (en Paso 4 haremos Zod fuerte para import)
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      !("tasks" in parsed) ||
-      !("columns" in parsed)
-    ) {
-      return getDefaultBoardState()
-    }
+    if (!parsed || typeof parsed !== "object") return getDefaultBoardState()
 
-    return parsed as BoardState
+    // fallback seguro si faltan campos
+    const p = parsed as Partial<BoardState>
+    return {
+      tasks: p.tasks ?? {},
+      columns: p.columns ?? { todo: [], doing: [], done: [] },
+      auditLog: p.auditLog ?? [],
+    }
   } catch {
     return getDefaultBoardState()
   }
