@@ -10,20 +10,28 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table"
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select"
 
 function formatTs(iso: string) {
-  // simple y legible
   return iso.replace("T", " ").slice(0, 19)
 }
 
 function diffSummary(e: AuditEvent) {
-  const beforeKeys = e.diff.before ? Object.keys(e.diff.before) : []
-  const afterKeys = e.diff.after ? Object.keys(e.diff.after) : []
+  const beforeKeys = e.diff?.before ? Object.keys(e.diff.before) : []
+  const afterKeys = e.diff?.after ? Object.keys(e.diff.after) : []
   const keys = Array.from(new Set([...beforeKeys, ...afterKeys]))
   if (e.action === "MOVE") return "estado cambiado"
   if (keys.length === 0) return "—"
@@ -31,7 +39,7 @@ function diffSummary(e: AuditEvent) {
 }
 
 export default function AuditPanel() {
-  const { state } = useBoard()
+  const { state, clearAuditLog } = useBoard()
 
   const [action, setAction] = React.useState<AuditAction | "ALL">("ALL")
   const [taskId, setTaskId] = React.useState("")
@@ -39,7 +47,8 @@ export default function AuditPanel() {
   const filtered = React.useMemo(() => {
     return state.auditLog.filter((e) => {
       const okAction = action === "ALL" ? true : e.action === action
-      const okTask = taskId.trim() === "" ? true : e.taskId.includes(taskId.trim())
+      const q = taskId.trim()
+      const okTask = q === "" ? true : e.taskId.includes(q)
       return okAction && okTask
     })
   }, [state.auditLog, action, taskId])
@@ -69,15 +78,45 @@ export default function AuditPanel() {
       .catch(() => toast.error("No se pudo copiar el resumen"))
   }
 
+  function clearFilters() {
+    setAction("ALL")
+    setTaskId("")
+  }
+
+  const inputClass =
+    "h-11 rounded-xl border border-zinc-800/70 bg-zinc-950/40 text-white placeholder:text-zinc-600 " +
+    "focus-visible:ring-2 focus-visible:ring-red-500/60 focus-visible:ring-offset-0 " +
+    "hover:border-red-500/55 transition-colors"
+
+  const triggerClass =
+    "h-11 w-[190px] rounded-xl border border-zinc-800/70 bg-zinc-950/40 text-white " +
+    "focus:ring-2 focus:ring-red-500/60 focus:ring-offset-0 " +
+    "hover:border-red-500/55 transition-colors"
+
+  const softBtn =
+    "h-11 rounded-xl border border-zinc-800 bg-zinc-950/40 text-white " +
+    "hover:border-red-500/60 hover:bg-red-500/10 transition-colors " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60"
+
+  const dangerBtn =
+    "h-11 rounded-xl border border-red-500/35 bg-transparent text-white " +
+    "hover:border-red-500/60 hover:bg-red-500/10 transition-colors " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60"
+
+  const BIG_AUDIT_CONTAINER =
+    "rounded-2xl border border-red-500/30 bg-black/20 backdrop-blur-sm shadow-sm transition " +
+    "hover:border-red-500/55 hover:shadow-[0_0_0_1px_rgba(239,68,68,0.20),0_18px_44px_rgba(239,68,68,0.14)]"
+
   return (
     <div className="space-y-4">
+      {/* Filters */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <Select value={action} onValueChange={(v) => setAction(v as AuditAction | "ALL")}>
-            <SelectTrigger className="h-11 w-[190px]">
+            <SelectTrigger className={triggerClass}>
               <SelectValue placeholder="Acción" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="border-zinc-800 bg-zinc-950 text-white">
               <SelectItem value="ALL">ALL</SelectItem>
               <SelectItem value="CREATE">CREATE</SelectItem>
               <SelectItem value="UPDATE">UPDATE</SelectItem>
@@ -87,70 +126,99 @@ export default function AuditPanel() {
           </Select>
 
           <Input
-            className="h-11 w-[260px]"
+            className={[inputClass, "w-[260px]"].join(" ")}
             placeholder="Filtrar por taskId…"
             value={taskId}
             onChange={(e) => setTaskId(e.target.value)}
             aria-label="Filtrar auditoría por taskId"
           />
 
-          <Button
-            variant="secondary"
-            className="h-11"
-            onClick={() => {
-              setAction("ALL")
-              setTaskId("")
-            }}
-          >
+          <Button type="button" variant="secondary" className={softBtn} onClick={clearFilters}>
             Limpiar
           </Button>
         </div>
 
-        <Button variant="secondary" className="h-11" onClick={copySummary}>
+        <Button type="button" variant="secondary" className={softBtn} onClick={copySummary}>
           Copiar resumen
         </Button>
       </div>
 
-      <Separator />
+      {/* Danger action */}
+      <Button type="button" variant="secondary" className={dangerBtn} onClick={() => clearAuditLog()}>
+        Vaciar log
+      </Button>
 
-      <div className="rounded-2xl border border-border bg-background shadow-sm">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="text-sm font-semibold">Log de auditoría</div>
-          <Badge variant="secondary">{filtered.length} eventos</Badge>
+      <Separator className="bg-zinc-800/60" />
+
+      {/* Table container (GRANDE) */}
+      <div className={BIG_AUDIT_CONTAINER}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-red-500/20">
+          <div className="text-sm font-semibold text-white">Log de auditoría</div>
+          <Badge className="rounded-full border border-zinc-800/70 bg-black/30 text-zinc-200">
+            {filtered.length} eventos
+          </Badge>
         </div>
 
-        <div className="border-t border-border">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Acción</TableHead>
-                <TableHead>Task</TableHead>
-                <TableHead>Diff</TableHead>
-                <TableHead>Usuario</TableHead>
+              <TableRow className="border-zinc-800/60">
+                <TableHead className="text-zinc-300">Timestamp</TableHead>
+                <TableHead className="text-zinc-300">Acción</TableHead>
+                <TableHead className="text-zinc-300">Task</TableHead>
+                <TableHead className="text-zinc-300">Diff</TableHead>
+                <TableHead className="text-zinc-300">Usuario</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow>
+                <TableRow className="border-zinc-800/60">
                   <TableCell colSpan={5} className="py-10 text-center">
-                    <div className="mx-auto max-w-xl rounded-2xl border border-dashed border-border bg-card p-6">
-                      <div className="text-base font-medium">Sin eventos</div>
-                      <p className="mt-2 text-sm text-muted-foreground">
+                    <div className="mx-auto max-w-xl rounded-2xl border border-red-500/20 bg-zinc-950/25 p-6">
+                      <div className="text-base font-medium text-white">Sin eventos</div>
+                      <p className="mt-2 text-sm text-zinc-400">
                         Crea, edita o borra tareas para ver el log con diff.
                       </p>
+                      <div className="mt-3">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className={softBtn}
+                          onClick={clearFilters}
+                        >
+                          Limpiar filtros
+                        </Button>
+                      </div>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
                 filtered.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell className="whitespace-nowrap">{formatTs(e.timestamp)}</TableCell>
-                    <TableCell>{e.action}</TableCell>
-                    <TableCell className="font-mono text-xs">{e.taskId}</TableCell>
-                    <TableCell className="text-muted-foreground">{diffSummary(e)}</TableCell>
-                    <TableCell>{e.userLabel}</TableCell>
+                  <TableRow
+                    key={e.id}
+                    className="border-zinc-800/60 hover:bg-white/[0.03] transition-colors"
+                  >
+                    <TableCell className="whitespace-nowrap text-zinc-200">
+                      {formatTs(e.timestamp)}
+                    </TableCell>
+                    <TableCell className="text-zinc-200">
+                      <span
+                        className={[
+                          "inline-flex items-center rounded-full border px-2 py-0.5 text-xs",
+                          e.action === "DELETE"
+                            ? "border-red-500/35 text-zinc-100"
+                            : "border-zinc-700/70 text-zinc-200",
+                        ].join(" ")}
+                      >
+                        {e.action}
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-zinc-300">
+                      {e.taskId}
+                    </TableCell>
+                    <TableCell className="text-zinc-400">{diffSummary(e)}</TableCell>
+                    <TableCell className="text-zinc-200">{e.userLabel}</TableCell>
                   </TableRow>
                 ))
               )}

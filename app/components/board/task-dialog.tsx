@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import type { Task, ColumnId, Priority } from "@/app/types"
+import type { Task, ColumnId, Priority, TaskGod } from "@/app/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import TaskForm, { type TaskFormValues } from "@/app/components/board/task-form"
 
@@ -12,6 +12,7 @@ export default function TaskDialog({
   initialTask,
   onCreate,
   onUpdate,
+  godMode = false,
 }: {
   mode: "create" | "edit"
   open: boolean
@@ -19,8 +20,11 @@ export default function TaskDialog({
   initialTask?: Task
   onCreate?: (data: TaskFormValues) => void
   onUpdate?: (data: TaskFormValues) => void
+  godMode?: boolean
 }) {
   const title = mode === "create" ? "Nueva tarea" : "Editar tarea"
+
+  const emptyGod: TaskGod = { javiNotes: "", score: null, comment: "" }
 
   const defaults: TaskFormValues = initialTask
     ? {
@@ -31,6 +35,7 @@ export default function TaskDialog({
         estimationMin: initialTask.estimationMin,
         dueAt: initialTask.dueAt ?? "",
         status: initialTask.status,
+        god: initialTask.god ?? emptyGod,
       }
     : {
         title: "",
@@ -40,6 +45,7 @@ export default function TaskDialog({
         estimationMin: 30,
         dueAt: "",
         status: "todo" as ColumnId,
+        god: emptyGod,
       }
 
   return (
@@ -50,6 +56,7 @@ export default function TaskDialog({
         </DialogHeader>
 
         <TaskForm
+          godMode={godMode}
           defaultValues={defaults}
           submitLabel={mode === "create" ? "Crear" : "Guardar"}
           onSubmit={(values) => {

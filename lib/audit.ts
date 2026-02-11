@@ -1,10 +1,9 @@
 import { v4 as uuidv4 } from "uuid"
-import type { AuditAction, AuditEvent, Task } from "@/app/types"
+import type { AuditAction, AuditEvent, ColumnId, Task } from "@/app/types"
 
 const USER_LABEL: AuditEvent["userLabel"] = "Alumno/a"
 
 function pickTaskSnapshot(t: Task): Record<string, unknown> {
-  // Snapshot “útil” (sin inventos): todo lo relevante
   return {
     id: t.id,
     title: t.title,
@@ -35,7 +34,7 @@ function diffTask(before: Task, after: Task): { before: Record<string, unknown>;
   for (const k of keys) {
     const b = before[k]
     const a = after[k]
-    // comparación simple (tags array)
+
     const same =
       Array.isArray(b) && Array.isArray(a)
         ? b.length === a.length && b.every((x, i) => x === a[i])
@@ -48,6 +47,19 @@ function diffTask(before: Task, after: Task): { before: Record<string, unknown>;
   }
 
   return { before: changedBefore, after: changedAfter }
+}
+
+/** ✅ Diff específico para MOVE (lo que te corrige el profe) */
+export function makeMoveDiff(params: {
+  fromCol: ColumnId
+  toCol: ColumnId
+  fromIndex: number
+  toIndex: number
+}) {
+  return {
+    before: { status: params.fromCol, index: params.fromIndex },
+    after: { status: params.toCol, index: params.toIndex },
+  }
 }
 
 export function makeAuditEvent(params: {
@@ -92,7 +104,7 @@ export function makeAuditEvent(params: {
     }
   }
 
-  // MOVE lo haremos en el paso del DnD, pero dejamos base:
+  // MOVE (el diff se lo añadimos desde el hook)
   return {
     id: uuidv4(),
     timestamp,
