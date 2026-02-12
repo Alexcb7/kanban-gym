@@ -247,7 +247,7 @@ export default function Board({ godMode }: { godMode: boolean }) {
 
   // ---- DnD (solo cuando no hay filtro) ----
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 

@@ -38,7 +38,7 @@ export default function TaskCardSortable({
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition,
+     transition: isDragging ? undefined : transition,
   }
 
   return (
@@ -56,7 +56,7 @@ export default function TaskCardSortable({
         {...attributes}
         {...listeners}
         className={[
-          "cursor-grab active:cursor-grabbing select-none",
+          "cursor-grab active:cursor-grabbing select-none touch-none",
           // al arrastrar: lift sutil + borde rojo MUY suave (no glow)
           isDragging
             ? "rounded-2xl ring-1 ring-red-500/25 shadow-lg shadow-black/40"
