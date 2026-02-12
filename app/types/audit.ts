@@ -11,5 +11,5 @@ export type AuditEvent = {
   action: AuditAction
   taskId: string
   diff: AuditDiff
-  userLabel: "Alumno/a"
+  userLabel: "Usuario"
 }

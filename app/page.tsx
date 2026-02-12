@@ -32,9 +32,9 @@ export default function Page() {
         <header className="sticky top-0 z-40 -mx-4 px-4 py-4 border-b border-zinc-800/60 bg-black/60 backdrop-blur-xl">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-xl font-semibold tracking-tight">Gym Ops Board</h1>
+              <h1 className="text-xl font-semibold tracking-tight">Gym Kanban</h1>
               <p className="text-sm text-zinc-400">
-                Mantenimiento · Clases · Recepción — auditoría, búsqueda e import/export
+                Mantenimiento · Clases · Recepción 
               </p>
             </div>
 

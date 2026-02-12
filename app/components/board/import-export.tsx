@@ -28,7 +28,7 @@ export default function ImportExportBar({
     setInfo(null)
     const json = exportBoardToJson(state)
     downloadJson("kanban-board-export.json", json)
-    setInfo("Exportado ✅ (kanban-board-export.json)")
+    setInfo("Exportado  (kanban-board-export.json)")
   }
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -50,10 +50,10 @@ export default function ImportExportBar({
 
     if (res.regenCount > 0) {
       setInfo(
-        `Importado ✅ (se regeneraron ${res.regenCount} IDs duplicadas y se registró en auditoría)`
+        `Importado  (se regeneraron ${res.regenCount} IDs duplicadas y se registró en auditoría)`
       )
     } else {
-      setInfo("Importado ✅")
+      setInfo("Importado ")
     }
 
     e.target.value = ""
@@ -99,7 +99,7 @@ export default function ImportExportBar({
           </Button>
 
           <div className="ml-auto text-sm text-zinc-400">
-            Persistencia: <span className="text-zinc-200">localStorage ✅</span>
+            <span className="text-zinc-200"></span>
           </div>
         </div>
 

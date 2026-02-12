@@ -35,7 +35,6 @@ function priorityLabel(p: Task["priority"]) {
 }
 
 function priorityClass(p: Task["priority"]) {
-  // Sin fondos rojos; solo borde/ring sutil en high
   if (p === "high") return "border-red-500/35 text-white"
   if (p === "medium") return "border-zinc-600/70 text-zinc-200"
   return "border-zinc-700/70 text-zinc-300"
@@ -70,7 +69,6 @@ export default function TaskCard({
         "rounded-2xl border bg-black/30 backdrop-blur-sm p-4 space-y-3 shadow-sm",
         "border-zinc-800/60",
         "hover:border-zinc-700/80 transition-colors",
-        // si está vencida: borde rojo sutil (sin fondo)
         overdue ? "border-red-500/30" : "",
       ].join(" ")}
     >
@@ -130,7 +128,7 @@ export default function TaskCard({
         ))}
       </div>
 
-      {/* ✅ Supervisor */}
+      {/* Supervisor */}
       {godMode ? (
         <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/35 backdrop-blur-sm p-3 space-y-2">
           <div className="flex items-center justify-between gap-3">
@@ -217,7 +215,7 @@ export default function TaskCard({
                 Cancelar
               </AlertDialogCancel>
 
-              {/* Acción de borrar: sin fondo rojo chillón */}
+              {/* Acción de borrar*/}
               <AlertDialogAction
                 onClick={() => onDelete(task.id)}
                 className="

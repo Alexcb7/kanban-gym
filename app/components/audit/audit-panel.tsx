@@ -178,7 +178,6 @@ export default function AuditPanel() {
                     <div className="mx-auto max-w-xl rounded-2xl border border-red-500/20 bg-zinc-950/25 p-6">
                       <div className="text-base font-medium text-white">Sin eventos</div>
                       <p className="mt-2 text-sm text-zinc-400">
-                        Crea, edita o borra tareas para ver el log con diff.
                       </p>
                       <div className="mt-3">
                         <Button

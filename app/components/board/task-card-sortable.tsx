@@ -57,7 +57,7 @@ export default function TaskCardSortable({
         {...listeners}
         className={[
           "cursor-grab active:cursor-grabbing select-none touch-none",
-          // al arrastrar: lift sutil + borde rojo MUY suave (no glow)
+          // al arrastrar: lift sutil 
           isDragging
             ? "rounded-2xl ring-1 ring-red-500/25 shadow-lg shadow-black/40"
             : "",

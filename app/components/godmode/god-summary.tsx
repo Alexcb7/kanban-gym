@@ -19,9 +19,6 @@ export default function GodSummary({ tasks }: { tasks: Task[] }) {
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-0.5">
           <div className="text-sm font-semibold text-white tracking-wide">Panel Supervisor</div>
-          <div className="text-xs text-zinc-400">
-            Rúbrica interna (solo visible en modo supervisor)
-          </div>
         </div>
 
         <Badge className="rounded-full border border-zinc-800/70 bg-zinc-950/40 text-zinc-200">
@@ -64,7 +61,7 @@ export default function GodSummary({ tasks }: { tasks: Task[] }) {
       ) : (
         <div className="mt-4 rounded-2xl border border-zinc-800/60 bg-zinc-950/25 p-3">
           <div className="text-sm text-zinc-300">
-            ✅ Todo revisado. No hay tareas pendientes de supervisión.
+            
           </div>
         </div>
       )}

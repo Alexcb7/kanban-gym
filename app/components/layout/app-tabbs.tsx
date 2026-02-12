@@ -62,11 +62,10 @@ export default function AppTabs() {
               </TabsTrigger>
             </TabsList>
 
-            <div className="text-sm text-zinc-500">Estado vacío cuidado ✅</div>
+            <div className="text-sm text-zinc-500"></div>
           </div>
 
           <TabsContent value="board" className="mt-2">
-            <Board />
           </TabsContent>
 
           <TabsContent value="audit" className="mt-2">

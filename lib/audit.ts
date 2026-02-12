@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid"
 import type { AuditAction, AuditEvent, ColumnId, Task } from "@/app/types"
 
-const USER_LABEL: AuditEvent["userLabel"] = "Alumno/a"
+const USER_LABEL: AuditEvent["userLabel"] = "Usuario"
 
 function pickTaskSnapshot(t: Task): Record<string, unknown> {
   return {

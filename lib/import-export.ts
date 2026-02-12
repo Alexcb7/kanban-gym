@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { v4 as uuidv4 } from "uuid"
-import type { AuditEvent, BoardState, ColumnId, Priority, Task } from "@/app/types"
+import type { AuditEvent, BoardState, ColumnId, Task } from "@/app/types"
 
 // ---------- ZOD SCHEMAS ----------
 const ColumnIdSchema = z.enum(["todo", "doing", "done"])
@@ -29,17 +29,26 @@ const TaskSchema = z.object({
 
 const AuditActionSchema = z.enum(["CREATE", "UPDATE", "DELETE", "MOVE"])
 
+// ✅ diff realista: before/after como objetos de cambios
+const AuditDiffSchema = z
+  .object({
+    before: z.record(z.string(), z.any()).optional(),
+    after: z.record(z.string(), z.any()).optional(),
+  })
+  .optional()
+
 const AuditEventSchema = z.object({
   id: z.string().min(1),
   timestamp: z.string().min(1),
   action: AuditActionSchema,
   taskId: z.string().min(1),
-  diff: z.record(z.any()).optional().default({}),
+  diff: AuditDiffSchema,
   userLabel: z.string().min(1),
 })
 
 const BoardStateSchema = z.object({
-  tasks: z.record(TaskSchema),
+  // ✅ Zod v4: record(keyType, valueType)
+  tasks: z.record(z.string(), TaskSchema),
   columns: z.object({
     todo: z.array(z.string()),
     doing: z.array(z.string()),
@@ -49,10 +58,6 @@ const BoardStateSchema = z.object({
 })
 
 // ---------- HELPERS ----------
-function allColumnIds(cols: BoardState["columns"]): string[] {
-  return [...cols.todo, ...cols.doing, ...cols.done]
-}
-
 function columnKeys(): ColumnId[] {
   return ["todo", "doing", "done"]
 }
@@ -71,7 +76,8 @@ function makeIdRegenAudit(oldId: string, newId: string): AuditEvent {
       before: { id: oldId },
       after: { id: newId, note: "Regenerado por ID duplicada durante import" },
     },
-    userLabel: "Alumno/a",
+    // si quieres cumplir el enunciado estricto:
+    userLabel: "Usuario",
   }
 }
 
@@ -86,9 +92,6 @@ function assertReferentialIntegrity(state: BoardState): string[] {
       }
     })
   }
-
-  // Opcional: comprobar que task.status coincide con la columna donde aparece (si aparece)
-  // No lo forzamos como error “duro” para no bloquear imports de alumnos, pero lo podríamos normalizar.
   return errors
 }
 
@@ -97,7 +100,11 @@ function assertReferentialIntegrity(state: BoardState): string[] {
  * - mismo id repetido en la misma columna o en varias columnas.
  * Resuelve duplicados clonando la tarea y regenerando ID para las ocurrencias extra.
  */
-function resolveDuplicateColumnIds(base: BoardState): { fixed: BoardState; regenEvents: AuditEvent[]; regenCount: number } {
+function resolveDuplicateColumnIds(base: BoardState): {
+  fixed: BoardState
+  regenEvents: AuditEvent[]
+  regenCount: number
+} {
   const fixed: BoardState = {
     tasks: { ...base.tasks },
     columns: {
@@ -115,6 +122,7 @@ function resolveDuplicateColumnIds(base: BoardState): { fixed: BoardState; regen
   for (const col of columnKeys()) {
     for (let i = 0; i < fixed.columns[col].length; i++) {
       const id = fixed.columns[col][i]
+
       if (!seen.has(id)) {
         seen.add(id)
         continue
@@ -122,16 +130,13 @@ function resolveDuplicateColumnIds(base: BoardState): { fixed: BoardState; regen
 
       // Duplicado -> regenerar creando una copia de la tarea original
       const original = fixed.tasks[id]
-      if (!original) {
-        // Si falta, esto ya lo pilla integridad (error), aquí lo dejamos.
-        continue
-      }
+      if (!original) continue
 
       const newId = uuidv4()
       const cloned: Task = {
         ...original,
         id: newId,
-        status: col, // el clon vive en esta columna
+        status: col,
       }
 
       fixed.tasks[newId] = cloned
@@ -139,8 +144,7 @@ function resolveDuplicateColumnIds(base: BoardState): { fixed: BoardState; regen
 
       regenEvents.push(makeIdRegenAudit(id, newId))
       regenCount++
-      // NO añadimos newId a seen para permitir que, si por algún motivo vuelve a repetirse,
-      // también se regenere.
+
       seen.add(newId)
     }
   }
@@ -211,7 +215,7 @@ export function validateAndNormalizeImport(rawText: string): ImportResult {
   // Resolver IDs duplicadas en columnas
   const { fixed, regenCount } = resolveDuplicateColumnIds(candidate)
 
-  // (Re-chequeo rápido)
+  // Re-chequeo rápido
   const integrityErrors2 = assertReferentialIntegrity(fixed)
   if (integrityErrors2.length > 0) {
     return { ok: false, errors: integrityErrors2 }

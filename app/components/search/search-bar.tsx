@@ -87,7 +87,6 @@ export default function SearchBar({
 
       {value.trim() ? (
         <p className="text-sm text-zinc-400">
-          Nota: durante la búsqueda, el Drag & Drop se desactiva para evitar movimientos raros con listas filtradas.
         </p>
       ) : null}
     </div>

@@ -5,22 +5,22 @@ export type Priority = "low" | "medium" | "high"
 
 export type TaskGod = {
   javiNotes: string
-  score: number | null // null = sin evaluar
+  score: number | null 
   comment: string
 }
 
 export type Task = {
-  id: string // uuid
-  title: string // min 3
+  id: string 
+  title: string 
   description?: string
   priority: Priority
   tags: string[]
   estimationMin: number
-  createdAt: string // ISO
-  dueAt?: string // ISO optional
+  createdAt: string 
+  dueAt?: string 
   status: ColumnId
 
-  // ✅ Modo Dios
+  //  Modo Dios
   god?: TaskGod
 }
 

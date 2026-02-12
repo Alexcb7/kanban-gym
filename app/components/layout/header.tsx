@@ -96,7 +96,7 @@ export default function Header() {
                     </li>
                   </ul>
                   <div className="text-xs text-zinc-500">
-                    Luego activamos atajo real Ctrl/Cmd + K.
+                    
                   </div>
                 </div>
               </PopoverContent>

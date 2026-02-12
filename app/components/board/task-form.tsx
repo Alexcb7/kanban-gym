@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { z } from "zod"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { ColumnId, Priority } from "@/app/types"
 
@@ -17,7 +17,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form"
 import {
   Select,
@@ -27,26 +26,23 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const toNumber = (val: unknown) => {
-  if (typeof val === "number") return val
-  if (typeof val === "string" && val.trim() !== "") return Number(val)
-  return val
-}
 
 const schema = z.object({
   title: z.string().trim().min(3, "El título debe tener al menos 3 caracteres"),
   description: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]),
   tags: z.array(z.string().min(1)).min(0),
-  estimationMin: z.preprocess(toNumber, z.number().int().min(1).max(10000)),
+
+  estimationMin: z.coerce.number().int().min(1).max(10000),
+
   dueAt: z.string().optional(), // yyyy-mm-dd
   status: z.enum(["todo", "doing", "done"]),
 
-  // ✅ Modo Supervisor (se guarda aunque esté oculto)
+  // Modo Supervisor
   god: z.object({
     javiNotes: z.string(),
     score: z.preprocess(
-      (v) => (v === "" || v === undefined ? null : Number(v)),
+      (v) => (v === "" || v === undefined || v === null ? null : Number(v)),
       z.number().min(0).max(10).nullable()
     ),
     comment: z.string(),
@@ -66,8 +62,9 @@ export default function TaskForm({
   onSubmit: (values: TaskFormValues) => void
   godMode?: boolean
 }) {
-  const form = useForm<TaskFormValues>({
-    resolver: zodResolver(schema),
+ 
+  const form = useForm<TaskFormValues, any, TaskFormValues>({
+    resolver: zodResolver(schema) as unknown as Resolver<TaskFormValues, any, TaskFormValues>,
     defaultValues,
     mode: "onChange",
   })
@@ -77,13 +74,13 @@ export default function TaskForm({
   function addTag(raw: string) {
     const t = raw.trim().toLowerCase()
     if (!t) return
-    const current = form.getValues("tags")
+    const current = form.getValues("tags") ?? []
     if (current.includes(t)) return
     form.setValue("tags", [...current, t], { shouldValidate: true })
   }
 
   function removeTag(tag: string) {
-    const current = form.getValues("tags")
+    const current = form.getValues("tags") ?? []
     form.setValue(
       "tags",
       current.filter((x) => x !== tag),
@@ -91,33 +88,39 @@ export default function TaskForm({
     )
   }
 
-  // ---- UI helpers (mismo lenguaje que tus cards) ----
+
   const labelClass = "text-xs font-medium text-zinc-300"
-  const helpClass = "text-xs text-zinc-500"
   const messageClass = "text-xs text-red-400/90"
 
   const inputClass =
     "bg-zinc-950/40 border-zinc-800/70 text-white placeholder:text-zinc-600 " +
     "focus-visible:ring-2 focus-visible:ring-red-500/60 focus-visible:ring-offset-0 " +
-    "hover:border-zinc-700/80 transition-colors rounded-xl"
+    "hover:border-red-500/35 transition-colors rounded-xl"
 
   const textareaClass =
     "bg-zinc-950/40 border-zinc-800/70 text-white placeholder:text-zinc-600 " +
     "focus-visible:ring-2 focus-visible:ring-red-500/60 focus-visible:ring-offset-0 " +
-    "hover:border-zinc-700/80 transition-colors rounded-xl min-h-[96px]"
+    "hover:border-red-500/35 transition-colors rounded-xl min-h-[96px]"
 
   const triggerClass =
     "bg-zinc-950/40 border-zinc-800/70 text-white " +
     "focus:ring-2 focus:ring-red-500/60 focus:ring-offset-0 " +
-    "hover:border-zinc-700/80 transition-colors rounded-xl"
+    "hover:border-red-500/35 transition-colors rounded-xl"
+
+  const softBtn =
+    "rounded-xl border border-zinc-800 bg-zinc-950/40 text-white " +
+    "hover:border-red-500/35 hover:bg-zinc-900/40 transition-colors " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60"
 
   return (
     <Form {...form}>
       <form
         className="
-          space-y-4
-          rounded-2xl border border-zinc-800/60 bg-black/30 backdrop-blur-sm p-4
-          shadow-sm
+          space-y-3
+          rounded-2xl border border-zinc-800/60 bg-black/30 backdrop-blur-md p-3
+          shadow-[0_0_18px_rgba(239,68,68,0.08)]
+          hover:border-red-500/25 hover:shadow-[0_0_22px_rgba(239,68,68,0.12)]
+          transition-colors
         "
         onSubmit={form.handleSubmit((vals) => {
           const normalized: TaskFormValues = {
@@ -127,9 +130,9 @@ export default function TaskForm({
             dueAt: vals.dueAt?.trim() || "",
             tags: vals.tags ?? [],
             god: {
-              javiNotes: vals.god.javiNotes ?? "",
-              score: vals.god.score ?? null,
-              comment: vals.god.comment ?? "",
+              javiNotes: vals.god?.javiNotes ?? "",
+              score: vals.god?.score ?? null,
+              comment: vals.god?.comment ?? "",
             },
           }
           onSubmit(normalized)
@@ -142,12 +145,7 @@ export default function TaskForm({
             <FormItem>
               <FormLabel className={labelClass}>Título *</FormLabel>
               <FormControl>
-                <Input
-                  {...field}
-                  className={inputClass}
-                  placeholder="Ej: Revisión máquina poleas / cinta #3"
-                  autoFocus
-                />
+                <Input {...field} className={inputClass} placeholder="Ej: Revisar cinta #3" autoFocus />
               </FormControl>
               <FormMessage className={messageClass} />
             </FormItem>
@@ -161,11 +159,7 @@ export default function TaskForm({
             <FormItem>
               <FormLabel className={labelClass}>Descripción</FormLabel>
               <FormControl>
-                <Textarea
-                  {...field}
-                  className={textareaClass}
-                  placeholder="Detalles, contexto, qué se ha observado…"
-                />
+                <Textarea {...field} className={textareaClass} placeholder="Detalles, contexto…" />
               </FormControl>
               <FormMessage className={messageClass} />
             </FormItem>
@@ -242,12 +236,7 @@ export default function TaskForm({
               <FormItem>
                 <FormLabel className={labelClass}>Fecha límite (opcional)</FormLabel>
                 <FormControl>
-                  <Input
-                    type="date"
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                    className={inputClass}
-                  />
+                  <Input type="date" value={field.value ?? ""} onChange={field.onChange} className={inputClass} />
                 </FormControl>
                 <FormMessage className={messageClass} />
               </FormItem>
@@ -263,7 +252,7 @@ export default function TaskForm({
             <Input
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
-              placeholder="Escribe y pulsa Enter…"
+              placeholder="Escribe y Enter…"
               className={inputClass}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -273,61 +262,34 @@ export default function TaskForm({
                 }
               }}
             />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                addTag(tagInput)
-                setTagInput("")
-              }}
-              className="
-                rounded-xl border border-zinc-800 bg-zinc-950/40 text-white
-                hover:border-zinc-600 hover:bg-zinc-900/40 transition-colors
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60
-              "
-            >
+            <Button type="button" variant="secondary" className={softBtn} onClick={() => { addTag(tagInput); setTagInput("") }}>
               Añadir
             </Button>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {form.watch("tags").map((t) => (
+            {(form.watch("tags") ?? []).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => removeTag(t)}
-                className="
-                  rounded-full
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60
-                  transition-colors
-                "
-                aria-label={`Eliminar tag ${t}`}
+                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60"
                 title="Click para eliminar"
               >
-                <Badge
-                  className="
-                    rounded-full border border-zinc-800/70 bg-zinc-950/40 text-zinc-200
-                    hover:border-red-500/35
-                    transition-colors
-                  "
-                >
+                <Badge className="rounded-full border border-zinc-800/70 bg-zinc-950/40 text-zinc-200 hover:border-red-500/35 transition-colors">
                   {t} <span className="text-zinc-400">✕</span>
                 </Badge>
               </button>
             ))}
           </div>
-
-          <div className={helpClass}>Tip: usa tags como “mantenimiento”, “clases”, “recepción”…</div>
         </div>
 
-        {/* ✅ MODO SUPERVISOR */}
+        {/* Supervisor */}
         {godMode ? (
-          <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/25 backdrop-blur-sm p-4 space-y-4">
+          <div className="rounded-2xl border border-zinc-800/60 bg-black/30 backdrop-blur-md p-3 space-y-3 hover:border-red-500/25 transition-colors">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-white">Modo Supervisor</div>
-              <Badge className="border border-zinc-800/70 bg-black/30 text-zinc-200">
-                Extra
-              </Badge>
+              <Badge className="border border-zinc-800/70 bg-black/30 text-zinc-200">Extra</Badge>
             </div>
 
             <FormField
@@ -335,17 +297,10 @@ export default function TaskForm({
               name="god.javiNotes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className={labelClass}>Observaciones del Supervisor</FormLabel>
+                  <FormLabel className={labelClass}>Observaciones</FormLabel>
                   <FormControl>
-                    <Textarea
-                      {...field}
-                      className={textareaClass}
-                      placeholder="Notas internas del supervisor…"
-                    />
+                    <Textarea {...field} className={textareaClass} placeholder="Notas internas…" />
                   </FormControl>
-                  <FormDescription className={helpClass}>
-                    Visible solo cuando el modo supervisor está activo.
-                  </FormDescription>
                   <FormMessage className={messageClass} />
                 </FormItem>
               )}
@@ -379,7 +334,7 @@ export default function TaskForm({
                 name="god.comment"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className={labelClass}>Comentario de Supervisor</FormLabel>
+                    <FormLabel className={labelClass}>Comentario</FormLabel>
                     <FormControl>
                       <Input {...field} className={inputClass} placeholder="Breve feedback" />
                     </FormControl>
@@ -392,14 +347,7 @@ export default function TaskForm({
         ) : null}
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button
-            type="submit"
-            className="
-              rounded-xl border border-zinc-800 bg-zinc-950/40 text-white
-              hover:border-zinc-600 hover:bg-zinc-900/40 transition-colors
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60
-            "
-          >
+          <Button type="submit" className={softBtn}>
             {submitLabel}
           </Button>
         </div>

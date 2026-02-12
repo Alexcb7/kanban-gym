@@ -123,6 +123,11 @@
     @apply bg-background text-foreground;
   }
 }
+.scrollbar-hide {
+  -ms-overflow-style: none;  
+  scrollbar-width: none;    
+}
 
-.shadow-red-soft { box-shadow: 0 10px 30px rgba(255, 45, 85, 0.12); }
-.shadow-red-soft-sm { box-shadow: 0 8px 18px rgba(255, 45, 85, 0.10); }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;           
+}

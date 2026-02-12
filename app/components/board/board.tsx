@@ -3,16 +3,12 @@
 import * as React from "react"
 import {
   DndContext,
-  DragOverlay,
   closestCenter,
   PointerSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
-  type DragStartEvent,
-  type DragCancelEvent,
-  defaultDropAnimationSideEffects,
 } from "@dnd-kit/core"
 import { useDroppable } from "@dnd-kit/core"
 import {
@@ -223,7 +219,7 @@ export default function Board({ godMode }: { godMode: boolean }) {
 
   const [openCreate, setOpenCreate] = React.useState(false)
 
-  // ✅ búsqueda
+  //  búsqueda
   const [query, setQuery] = React.useState("")
   const parsed = React.useMemo(() => parseQuery(query), [query])
   const predicate = React.useMemo(() => makeTaskPredicate(parsed), [parsed])
@@ -245,31 +241,15 @@ export default function Board({ godMode }: { godMode: boolean }) {
   const totalDoing = filteredByCol.doing.reduce((a, t) => a + t.estimationMin, 0)
   const totalDone = filteredByCol.done.reduce((a, t) => a + t.estimationMin, 0)
 
-  // ---- DnD (solo cuando no hay filtro) ----
+  
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 2 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  const [activeId, setActiveId] = React.useState<string | null>(null)
-
-  const activeTask: Task | null = React.useMemo(() => {
-    if (!activeId) return null
-    return state.tasks[activeId] ?? null
-  }, [activeId, state.tasks])
-
-  function onDragStart(e: DragStartEvent) {
-    setActiveId(String(e.active.id))
-  }
-
-  function onDragCancel(_e: DragCancelEvent) {
-    setActiveId(null)
-  }
-
   function onDragEnd(e: DragEndEvent) {
     const active = String(e.active.id)
     const over = e.over ? String(e.over.id) : null
-    setActiveId(null)
     if (!over) return
     if (active === over) return
 
@@ -307,22 +287,15 @@ export default function Board({ godMode }: { godMode: boolean }) {
     moveTaskDnD({ taskId: active, fromCol, toCol, fromIndex, toIndex })
   }
 
-  const dropAnimation = {
-    duration: 200,
-    easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
-    sideEffects: defaultDropAnimationSideEffects({
-      styles: { active: { opacity: "0.35" } },
-    }),
-  }
-
+  
   return (
     <div className="space-y-4">
-      {/* ✅ Import/Export */}
+      {/*  Import/Export */}
       <div className="rounded-2xl border border-zinc-800/60 bg-black/20 backdrop-blur-sm p-3">
         <ImportExportBar state={state} onImportState={replaceState} />
       </div>
 
-      {/* ✅ Search */}
+      {/*  Search */}
       <div className="rounded-2xl border border-zinc-800/60 bg-black/20 backdrop-blur-sm p-3">
         <SearchBar value={query} onChange={setQuery} />
       </div>
@@ -340,7 +313,6 @@ export default function Board({ godMode }: { godMode: boolean }) {
         </Badge>
 
         <div className="ml-auto text-xs text-zinc-400">
-          {isFiltering ? "Búsqueda activa (DnD desactivado)" : "DnD activo"}
         </div>
       </div>
 
@@ -374,8 +346,6 @@ export default function Board({ godMode }: { godMode: boolean }) {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragStart={onDragStart}
-          onDragCancel={onDragCancel}
           onDragEnd={onDragEnd}
         >
           <div className="grid gap-4 lg:grid-cols-3">
@@ -405,19 +375,6 @@ export default function Board({ godMode }: { godMode: boolean }) {
               godMode={godMode}
             />
           </div>
-
-          <DragOverlay dropAnimation={dropAnimation}>
-            {activeTask ? (
-              <div className="cursor-grabbing rounded-2xl ring-1 ring-red-500/35 shadow-[0_0_18px_rgba(239,68,68,0.14)] backdrop-blur-sm">
-                <TaskCard
-                  task={activeTask}
-                  onUpdate={updateTask}
-                  onDelete={deleteTask}
-                  godMode={godMode}
-                />
-              </div>
-            ) : null}
-          </DragOverlay>
         </DndContext>
       )}
 

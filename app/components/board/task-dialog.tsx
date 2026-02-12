@@ -50,9 +50,9 @@ export default function TaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="w-[min(94vw,56rem)] sm:max-w-2xl max-h-[85vh] overflow-y-auto scrollbar-hide border-red-900/60 bg-zinc-950/95 p-4 text-white shadow-2xl shadow-red-950/40 sm:p-5">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+         <DialogTitle className="text-white">{title}</DialogTitle>
         </DialogHeader>
 
         <TaskForm
